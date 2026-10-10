@@ -79,7 +79,7 @@ private class Arena(activity: Activity) : View(activity) {
                 val id = e.getPointerId(idx)
                 val x = e.getX(idx) * 1000f / w
                 val y = e.getY(idx) * 560f / h
-                if (gameOver && y < 220f) {
+                if (gameOver && x in 290f..710f && y in 80f..220f) {
                     score.fill(0); gameOver = false; resetRound(); return true
                 }
                 controls.filter { hypot(x - it.cx, y - it.cy) < it.radius + 16f }
@@ -109,7 +109,7 @@ private class Arena(activity: Activity) : View(activity) {
         a.x = 280f; a.y = 320f; a.vx = 0f; a.vy = 0f; a.face = 1; a.grounded = false
         b.x = 720f; b.y = 320f; b.vx = 0f; b.vy = 0f; b.face = -1; b.grounded = false
         for (s in players) { s.shieldUntil = 0f; s.shotAt = -10f; s.dashAt = -10f; s.shieldAt = -10f }
-        bullets.clear(); sparks.clear(); roundPause = 0.7f; message = "LUTEM!"; messageUntil = time + 1.2f
+        bullets.clear(); sparks.clear(); roundPause = 0f; message = "LUTEM!"; messageUntil = time + 1.2f
         touchToControl.clear(); previousPressed.clear()
     }
 
