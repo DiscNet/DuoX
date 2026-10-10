@@ -1,20 +1,19 @@
 # DuoX
 
-Jogo original de combate de gosminhas para **duas pessoas no mesmo celular**. Inspirado nas mecânicas de arena de Bopl Battle, sem utilizar seus assets, personagens ou código.
+Protótipo original de duelo de gosminhas para **2 jogadores no mesmo celular Android**, em modo paisagem. Inspirado no gênero de batalhas de arena de Bopl Battle, sem utilizar personagens, arte ou código do jogo original.
 
-## Como jogar
-- Gire o celular na horizontal.
-- **Player 1 (azul)** usa os botões na metade esquerda.
-- **Player 2 (rosa)** usa os botões na metade direita.
-- Cada lado tem direção, pulo, tiro, impulso e escudo.
-- Tiros e pisões na cabeça eliminam o adversário se ele não estiver protegido. Primeiro a **5 pontos** vence.
-- Há plataformas, gravidade, colisões, respawn por rodada e recarga de habilidades.
-- Toque em **REINICIAR** ao final da partida para jogar novamente.
+## Jogabilidade
 
-## APK
-Abra **Actions → Android APK → Run workflow** e baixe o artefato **DuoX-debug-apk** após a compilação, ou execute `gradle :app:assembleDebug` com Android SDK e Java 17 instalados. O APK estará em `app/build/outputs/apk/debug/`.
+- **P1 (azul):** botões da metade esquerda
+- **P2 (rosa):** botões da metade direita
+- **◀ ▶** movimentar · **↑** pular · **●** atirar · **»** dash
+- Plataformas com gravidade, disparos letais, recarga, partículas e escudo breve durante o dash
+- Rodadas automáticas: o primeiro a **5 pontos** vence; toque para reiniciar
 
-## Projeto
-Android nativo, Kotlin, Canvas 2D, multitouch independente, sem permissões de rede nem dependências de runtime. Requer Android 6.0+.
+## APK de desenvolvimento
 
-**Estado:** protótipo jogável inicial; não é uma reprodução 1:1 de Bopl Battle.
+Acesse **Actions → Android APK → Run workflow** em https://github.com/DiscNet/DuoX/actions. Ao finalizar com sucesso, baixe o artefato **DuoX-debug-apk**.
+
+Para compilar localmente, instale JDK 17, Android SDK e Gradle 8.10.2 e execute `gradle :app:assembleDebug`. O arquivo gerado ficará em `app/build/outputs/apk/debug/app-debug.apk`.
+
+Código nativo **Java**, Android Canvas e controles multitoque. **Android 6.0+**. O projeto ainda não foi validado em aparelhos físicos e não é um clone fiel 1:1 de Bopl Battle.
