@@ -1,26 +1,56 @@
-name: Android APK
+name: Build and publish DuoX APK
+
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle.properties'
+      - '.github/workflows/android.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
-  apk:
+  android-release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
-      - uses: actions/upload-artifact@v4
+      - name: Build APK
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Prepare release APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk DuoX-v0.1.0.apk
+      - name: Save artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: DuoX-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: DuoX-v0.1.0
+          path: DuoX-v0.1.0.apk
           if-no-files-found: error
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v0.1.0 >/dev/null 2>&1; then
+            gh release upload v0.1.0 DuoX-v0.1.0.apk --clobber
+          else
+            gh release create v0.1.0 DuoX-v0.1.0.apk \
+              --title "DuoX v0.1.0" \
+              --notes "Primeira versão Android: combate local de duas gosminhas na mesma tela, em modo paisagem. APK de teste (debug)."
+          fi
