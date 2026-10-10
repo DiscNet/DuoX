@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
                 if(roundPause<=0 && winner<0){round++;resetPositions();}
             }
             for(Particle part:particles){part.life-=dt;part.x+=part.vx*dt;part.y+=part.vy*dt;part.vy+=390*dt;}
-            particles.removeIf(p -> p.life<=0);
+            for (Iterator<Particle> pit=particles.iterator();pit.hasNext();) { if(pit.next().life<=0) pit.remove(); }
             cameraShake=Math.max(0,cameraShake-dt*30);
             float s=Math.min(getWidth()/W,getHeight()/H);
             float x=(getWidth()-W*s)/2f, y=(getHeight()-H*s)/2f;
