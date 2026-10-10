@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         final Paint paint = new Paint(3);
         final Random random = new Random();
         final HashMap<Integer, Integer> pointers = new HashMap<>();
-        final boolean[] held = new boolean[10];
+        final boolean[] held = new boolean[12];
         final ArrayList<Shot> shots = new ArrayList<>();
         final ArrayList<Particle> particles = new ArrayList<>();
         final RectF[] platforms = {
@@ -46,7 +46,7 @@ public class MainActivity extends Activity {
         void resetPositions() {
             for (int i=0; i<2; i++) {
                 Slime p=players[i]; p.x=i==0?180:1100; p.y=FLOOR-R; p.vx=0; p.vy=0; p.alive=true;
-                p.dir=i==0?1:-1; p.jumpLatch=false; p.shield=0; p.dash=0; p.fire=0;
+                p.dir=i==0?1:-1; p.jumpLatch=false; p.dashLatch=false; p.shieldLatch=false; p.shield=0; p.shieldCooldown=0; p.dash=0; p.dashActive=0; p.fire=0; p.jumps=0; p.grounded=true;
             }
             shots.clear(); particles.clear(); pointers.clear();
             for(int i=0;i<held.length;i++) held[i]=false;
@@ -87,23 +87,26 @@ public class MainActivity extends Activity {
         void update(float dt) {
             for(int i=0;i<2;i++) {
                 Slime p=players[i]; if(!p.alive)continue;
-                p.fire=Math.max(0,p.fire-dt);p.dash=Math.max(0,p.dash-dt);p.shield=Math.max(0,p.shield-dt);
-                int base=i*5;
+                p.fire=Math.max(0,p.fire-dt);p.dash=Math.max(0,p.dash-dt);p.shield=Math.max(0,p.shield-dt);p.shieldCooldown=Math.max(0,p.shieldCooldown-dt);p.dashActive=Math.max(0,p.dashActive-dt);
+                int base=i*6;
                 int move=(held[base+1]?1:0)-(held[base]?1:0);
                 if(move!=0) p.dir=move;
                 float target=move*SPEED;
                 p.vx+=(target-p.vx)*Math.min(1,dt*(p.grounded?13:7));
-                if(held[base+2] && !p.jumpLatch && p.grounded){p.vy=JUMP;p.grounded=false;burst(p.x,p.y+R,0xffffffff,7);}
+                if(held[base+2] && !p.jumpLatch && p.jumps<2){p.vy=p.jumps==0?JUMP:JUMP*.86f;p.jumps++;p.grounded=false;burst(p.x,p.y+R,0xffffffff,10);}
                 p.jumpLatch=held[base+2];
                 if(held[base+3] && p.fire==0){p.fire=.38f;shots.add(new Shot(p.x+p.dir*35,p.y-6,p.dir*670,i));burst(p.x+p.dir*35,p.y-6,p.color,5);}
-                if(held[base+4] && p.dash==0){p.dash=2.6f;p.vx=p.dir*850;p.vy=Math.min(p.vy,-120);p.shield=.24f;burst(p.x,p.y,p.color,13);}
+                if(held[base+4] && !p.dashLatch && p.dash<=0){p.dash=2.6f;p.dashActive=.23f;p.vx=p.dir*850;p.vy=Math.min(p.vy,-120);burst(p.x,p.y,p.color,13);}
+                p.dashLatch=held[base+4];
+                if(held[base+5] && !p.shieldLatch && p.shieldCooldown<=0){p.shield=1.05f;p.shieldCooldown=5.0f;burst(p.x,p.y,0xffb8efff,18);}
+                p.shieldLatch=held[base+5];
                 p.vy+=GRAVITY*dt;
                 float oldBottom=p.y+R;
                 p.x+=p.vx*dt;p.y+=p.vy*dt;
                 p.grounded=false;
                 for(RectF f:platforms) {
                     if(p.vy>=0 && oldBottom<=f.top+9 && p.y+R>=f.top && p.x+R>f.left && p.x-R<f.right){
-                        p.y=f.top-R;p.vy=0;p.grounded=true;
+                        p.y=f.top-R;p.vy=0;p.grounded=true;p.jumps=0;
                     }
                 }
                 if(p.x<R){p.x=R;p.vx=Math.max(0,p.vx);}
@@ -128,8 +131,9 @@ public class MainActivity extends Activity {
                 Slime a=players[0],b=players[1];
                 float d=Math.signum(b.x-a.x);if(d==0)d=1;
                 a.x-=d*2;b.x+=d*2;
-                if(a.shield>0 && b.shield<=0)kill(1);
-                else if(b.shield>0 && a.shield<=0)kill(0);
+                if(a.dashActive>0 && b.shield<=0 && b.dashActive<=0)kill(1);
+                else if(b.dashActive>0 && a.shield<=0 && a.dashActive<=0)kill(0);
+                else {a.vx-=d*85;b.vx+=d*85;}
             }
         }
         void kill(int loser){
@@ -183,7 +187,7 @@ public class MainActivity extends Activity {
             }
             c.restore();
             rect(c,p.x-27,p.y-50,p.x+27,p.y-43,3,0x77000000);
-            rect(c,p.x-27,p.y-50,p.x+27*(1-p.dash/2.6f),p.y-43,3,p.color);
+            rect(c,p.x-27,p.y-50,p.x-27+54*(1-p.dash/2.6f),p.y-43,3,p.color);
         }
         void drawShot(Canvas c,Shot s){circle(c,s.x,s.y,s.radius+8,0x33ffffff);circle(c,s.x,s.y,s.radius,players[s.owner].color);circle(c,s.x-4,s.y-5,4,Color.WHITE);}
         void drawParticle(Canvas c,Particle p){circle(c,p.x,p.y,Math.max(1,6*p.life),p.color);}
@@ -199,24 +203,31 @@ public class MainActivity extends Activity {
             text(c,headline,640,325,39,Color.WHITE);
             text(c,small,640,372,23,0xffa7ddea);
         }
-        final float[] bx={67,167,260,370,472,808,910,1020,1114,1215};
-        final float[] by={638,638,638,638,638,638,638,638,638,638};
-        final String[] names={"◀","▶","↑","●","»","◀","▶","↑","●","»"};
+        final float[] bx={55,145,235,325,415,505,775,865,955,1045,1135,1225};
+        final float[] by={638,638,638,638,638,638,638,638,638,638,638,638};
+        final String[] names={"◀","▶","↑","●","»","◇","◀","▶","↑","●","»","◇"};
         void drawControls(Canvas c){
             for(int i=0;i<10;i++){
-                int color=i<5?0xff56dafa:0xffff69af;
-                circle(c,bx[i],by[i],i%5==3?39:37,held[i]?color:0x76344158);
+                int color=i<6?0xff56dafa:0xffff69af;
+                circle(c,bx[i],by[i],i%6==3?36:33,held[i]?color:0x76344158);
                 fill(c,color);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2);
                 c.drawCircle(bx[i],by[i],i%5==3?39:37,paint);paint.setStyle(Paint.Style.FILL);
                 text(c,names[i],bx[i],by[i]+12,32,held[i]?0xff101827:Color.WHITE);
+                int idx=i/6, ability=i%6;
+                float cooldown=ability==3?players[idx].fire:ability==4?players[idx].dash:ability==5?players[idx].shieldCooldown:0;
+                float maximum=ability==3?.38f:ability==4?2.6f:ability==5?5f:1f;
+                if(cooldown>0){fill(c,0xbbffffff);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4);
+                    c.drawArc(bx[i]-29,by[i]-29,bx[i]+29,by[i]+29,-90,360*Math.min(1,cooldown/maximum),false,paint);
+                    paint.setStyle(Paint.Style.FILL);
+                }
             }
             text(c,"P1 · AZUL",125,112,21,players[0].color);
             text(c,"P2 · ROSA",1150,112,21,players[1].color);
-            text(c,"MOV.   PULO   TIRO   DASH",241,701,13,0xffa7b0c8);
-            text(c,"MOV.   PULO   TIRO   DASH",1038,701,13,0xffa7b0c8);
+            text(c,"MOVER    PULO    TIRO    DASH    ESCUDO",275,701,13,0xffa7b0c8);
+            text(c,"MOVER    PULO    TIRO    DASH    ESCUDO",1005,701,13,0xffa7b0c8);
         }
         int button(float x,float y){
-            for(int i=0;i<10;i++)if(dist(x,y,bx[i],by[i])<46)return i;
+            for(int i=0;i<10;i++)if(dist(x,y,bx[i],by[i])<39)return i;
             return -1;
         }
         @Override public boolean onTouchEvent(MotionEvent ev){
@@ -236,7 +247,7 @@ public class MainActivity extends Activity {
                     if(!pointers.containsKey(id))continue;
                     float x=(ev.getX(j)-ox)/scale,y=(ev.getY(j)-oy)/scale;
                     int old=pointers.get(id),b=button(x,y);
-                    if(b>=0 && b/5==old/5)pointers.put(id,b);
+                    if(b>=0 && b/6==old/6)pointers.put(id,b);
                     else if(b<0)pointers.remove(id);
                 }
             }
@@ -245,7 +256,7 @@ public class MainActivity extends Activity {
             return true;
         }
         static class Slime{
-            float x,y,vx,vy,shield,fire,dash;boolean grounded=true,alive=true,jumpLatch;int color,dir,score;
+            float x,y,vx,vy,shield,shieldCooldown,fire,dash,dashActive;boolean grounded=true,alive=true,jumpLatch,dashLatch,shieldLatch;int color,dir,score,jumps;
             Slime(float x,int color,int dir){this.x=x;this.color=color;this.dir=dir;}
         }
         static class Shot{
