@@ -20,7 +20,7 @@ class MainActivity : Activity() {
 private data class Slime(
     var x: Float, var y: Float, val color: Int,
     var vx: Float = 0f, var vy: Float = 0f, var face: Int = 1,
-    var grounded: Boolean = false, var shieldUntil: Float = 0f,
+    var grounded: Boolean = false, var jumps: Int = 0, var shieldUntil: Float = 0f,
     var shotAt: Float = -10f, var dashAt: Float = -10f, var shieldAt: Float = -10f
 )
 private data class Bullet(var x: Float, var y: Float, val vx: Float, val owner: Int, var life: Float = 1.7f)
@@ -51,8 +51,8 @@ private class Arena(activity: Activity) : View(activity) {
     private val controls = buildList {
         for (i in 0..1) {
             fun x(value: Float) = if (i == 0) value else 1000f - value
-            add(Control(i, LEFT, x(52f), 438f, 33f, "◀"))
-            add(Control(i, RIGHT, x(129f), 438f, 33f, "▶"))
+            add(Control(i, LEFT, x(if (i == 0) 52f else 129f), 438f, 33f, "◀"))
+            add(Control(i, RIGHT, x(if (i == 0) 129f else 52f), 438f, 33f, "▶"))
             add(Control(i, JUMP, x(213f), 438f, 31f, "↑"))
             add(Control(i, FIRE, x(293f), 438f, 30f, "●"))
             add(Control(i, DASH, x(372f), 438f, 29f, "»"))
@@ -106,8 +106,8 @@ private class Arena(activity: Activity) : View(activity) {
 
     private fun resetRound() {
         val a = players[0]; val b = players[1]
-        a.x = 280f; a.y = 320f; a.vx = 0f; a.vy = 0f; a.face = 1; a.grounded = false
-        b.x = 720f; b.y = 320f; b.vx = 0f; b.vy = 0f; b.face = -1; b.grounded = false
+        a.x = 280f; a.y = 320f; a.vx = 0f; a.vy = 0f; a.face = 1; a.grounded = false; a.jumps = 0
+        b.x = 720f; b.y = 320f; b.vx = 0f; b.vy = 0f; b.face = -1; b.grounded = false; b.jumps = 0
         for (s in players) { s.shieldUntil = 0f; s.shotAt = -10f; s.dashAt = -10f; s.shieldAt = -10f }
         bullets.clear(); sparks.clear(); roundPause = 0f; message = "LUTEM!"; messageUntil = time + 1.2f
         touchToControl.clear(); previousPressed.clear()
@@ -151,8 +151,8 @@ private class Arena(activity: Activity) : View(activity) {
             s.vx += (horizontal * 1150f - s.vx * if (horizontal == 0) 8f else 4.2f) * dt
             s.vx = s.vx.coerceIn(-270f, 270f)
             fun newPress(a: Int) = (i to a in pressed) && (i to a !in previousPressed)
-            if (newPress(JUMP) && s.grounded) { s.vy = -470f; s.grounded = false; burst(s.x,s.y+23f,s.color,8) }
-            if (newPress(FIRE) && time-s.shotAt >= .55f) {
+            if (newPress(JUMP) && s.jumps < 2) { s.vy = if (s.jumps == 0) -470f else -405f; s.jumps++; s.grounded = false; burst(s.x,s.y+23f,s.color,8) }
+            if ((i to FIRE in pressed) && time-s.shotAt >= .55f) {
                 bullets.add(Bullet(s.x+s.face*32f,s.y-5f,s.face*560f,i))
                 s.shotAt = time
             }
@@ -171,12 +171,26 @@ private class Arena(activity: Activity) : View(activity) {
             for (platform in platforms) {
                 if (s.vy >= 0f && oldBottom <= platform.top+7f && s.y+24f >= platform.top &&
                     s.x+20f >= platform.left && s.x-20f <= platform.right) {
-                    s.y = platform.top-24f; s.vy = 0f; s.grounded = true
+                    s.y = platform.top-24f; s.vy = 0f; s.grounded = true; s.jumps = 0
                 }
             }
             if (s.y > 530f) { eliminate(i); break }
         }
         previousPressed.clear(); previousPressed.addAll(pressed)
+        // A high-speed dash can eliminate an unshielded opponent on contact.
+        if (roundPause <= 0f) {
+            for (i in players.indices) {
+                val attacker = players[i]
+                val target = players[1-i]
+                if (time - attacker.dashAt < .23f &&
+                    time >= target.shieldUntil &&
+                    hypot(attacker.x - target.x, attacker.y - target.y) < 46f) {
+                    eliminate(1-i)
+                    break
+                }
+            }
+        }
+        if (roundPause > 0f) return
         for (b in bullets) {
             b.x += b.vx*dt; b.life -= dt
             val enemy = players[1-b.owner]
@@ -275,8 +289,8 @@ private class Arena(activity: Activity) : View(activity) {
             text(canvas,message,500f,138f,25f)
         }
         if (gameOver) text(canvas,"TOQUE AQUI PARA REINICIAR",500f,188f,17f)
-        text(canvas,"MOVER   PULAR   TIRO   DASH   ESCUDO",250f,520f,12f,Color.LTGRAY)
-        text(canvas,"MOVER   PULAR   TIRO   DASH   ESCUDO",750f,520f,12f,Color.LTGRAY)
+        text(canvas,"MOVER   PULO DUPLO   TIRO   DASH   ESCUDO",250f,520f,12f,Color.LTGRAY)
+        text(canvas,"MOVER   PULO DUPLO   TIRO   DASH   ESCUDO",750f,520f,12f,Color.LTGRAY)
         canvas.restore()
         postInvalidateDelayed(16L)
     }
