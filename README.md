@@ -7,7 +7,7 @@ Jogo original de combate de gosminhas para **duas pessoas no mesmo celular**. In
 - **Player 1 (azul)** usa os botões na metade esquerda.
 - **Player 2 (rosa)** usa os botões na metade direita.
 - Cada lado tem direção, pulo, tiro, impulso e escudo.
-- Tiros eliminam o adversário se ele não estiver protegido. Primeiro a **5 pontos** vence.
+- Tiros e pisões na cabeça eliminam o adversário se ele não estiver protegido. Primeiro a **5 pontos** vence.
 - Há plataformas, gravidade, colisões, respawn por rodada e recarga de habilidades.
 - Toque em **REINICIAR** ao final da partida para jogar novamente.
 
