@@ -143,6 +143,7 @@ private class Arena(activity: Activity) : View(activity) {
             return
         }
         val pressed = touchToControl.values.map { it.owner to it.action }.toSet()
+        val previousY = players.map { it.y }
         for ((i,s) in players.withIndex()) {
             val left = i to LEFT in pressed
             val right = i to RIGHT in pressed
@@ -175,6 +176,23 @@ private class Arena(activity: Activity) : View(activity) {
                 }
             }
             if (s.y > 530f) { eliminate(i); break }
+        }
+        // A falling slime can land on the opponent's head for a stomp knockout.
+        // Check the previous feet position to avoid side-on overlap kills.
+        for (attacker in 0..1) {
+            val victim = 1 - attacker
+            val a = players[attacker]
+            val v = players[victim]
+            val oldFeet = previousY[attacker] + 24f
+            val head = v.y - 22f
+            if (a.vy > 90f && abs(a.x - v.x) < 33f &&
+                oldFeet <= head + 7f && a.y + 24f >= head &&
+                time >= v.shieldUntil) {
+                a.vy = -360f
+                burst(v.x, v.y - 22f, a.color, 16)
+                eliminate(victim)
+                break
+            }
         }
         previousPressed.clear(); previousPressed.addAll(pressed)
         // A high-speed dash can eliminate an unshielded opponent on contact.
