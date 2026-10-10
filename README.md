@@ -1,19 +1,26 @@
 # DuoX
 
-Protótipo original de duelo de gosminhas para **2 jogadores no mesmo celular Android**, em modo paisagem. Inspirado no gênero de batalhas de arena de Bopl Battle, sem utilizar personagens, arte ou código do jogo original.
+Arena 2D de combate entre duas gosminhas, feita para **2 pessoas no mesmo celular Android**, em tela horizontal. Inspirada no ritmo de jogos como Bopl Battle; código, personagens e gráficos são próprios.
 
-## Jogabilidade
+## Como jogar
+- **Player 1 (azul):** controles na metade esquerda da tela.
+- **Player 2 (rosa):** controles na metade direita da tela.
+- Ambos podem jogar simultaneamente usando multitoque.
+- **◀ ▶** mover; **↑** pular e pular novamente no ar; **●** atirar (segure para tiros sucessivos); **»** dash (também causa dano no contato); **◇** escudo temporário.
+- Elimine o rival com tiros, colisão durante o dash ou derrubando-o da arena. O primeiro a atingir **5 pontos** vence.
+- As habilidades têm recargas, mostradas por arcos nos botões. Para recomeçar, toque no centro ao final da partida.
 
-- **P1 (azul):** botões da metade esquerda
-- **P2 (rosa):** botões da metade direita
-- **◀ ▶** movimentar · **↑** pular · **●** atirar · **»** dash
-- Plataformas com gravidade, disparos letais, recarga, partículas e escudo breve durante o dash
-- Rodadas automáticas: o primeiro a **5 pontos** vence; toque para reiniciar
+## Gerar o APK
+1. Abra a aba [Actions](https://github.com/DiscNet/DuoX/actions) do repositório.
+2. Selecione **Android APK**, e use **Run workflow** (ou aguarde o build iniciado por um push em `main`).
+3. Após um build bem-sucedido, abra a execução e baixe o artefato **DuoX-debug-apk**.
+4. Extraia o ZIP e instale `app-debug.apk` no Android.
 
-## APK de desenvolvimento
+Build local: `gradle --no-daemon :app:assembleDebug`, com JDK 17 e Android SDK instalados.
 
-Acesse **Actions → Android APK → Run workflow** em https://github.com/DiscNet/DuoX/actions. Ao finalizar com sucesso, baixe o artefato **DuoX-debug-apk**.
+## Stack
+- Kotlin + Android Canvas 2D, atualização de 60 FPS (alvo), multitoque por identificador de dedo.
+- Sem conexão à internet, serviços externos nem dependências de jogos.
+- Android 6.0+ (API 23), modo paisagem.
 
-Para compilar localmente, instale JDK 17, Android SDK e Gradle 8.10.2 e execute `gradle :app:assembleDebug`. O arquivo gerado ficará em `app/build/outputs/apk/debug/app-debug.apk`.
-
-Código nativo **Java**, Android Canvas e controles multitoque. **Android 6.0+**. O projeto ainda não foi validado em aparelhos físicos e não é um clone fiel 1:1 de Bopl Battle.
+**Status:** protótipo jogável. Ainda não reproduz todas as habilidades, arenas, animações, balanceamento e opções de Bopl Battle. O APK depende da compilação bem-sucedida no GitHub Actions ou ambiente Android local.
