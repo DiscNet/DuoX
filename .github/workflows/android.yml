@@ -27,7 +27,9 @@ jobs:
           java-version: '17'
 
       - name: Python e Pillow
-        run: python3 -m pip install --break-system-packages Pillow
+        run: |
+          set -euo pipefail
+          python3 -m pip install --break-system-packages Pillow
           python3 -m py_compile tools/*.py
           python3 -m unittest discover -s tests -v
 
