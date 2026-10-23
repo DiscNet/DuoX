@@ -1,4 +1,4 @@
-name: Android DuoX — APK standalone
+name: DuoX Android APK
 
 on:
   push:
@@ -10,13 +10,13 @@ permissions:
 
 concurrency:
   group: duox-release
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   package-android:
     name: Gerar DuoX ARM64
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +28,7 @@ jobs:
 
       - name: Python e Pillow
         run: python3 -m pip install --break-system-packages Pillow
+          python3 -m py_compile tools/*.py
 
       - name: Baixar o runtime Windows/Android do Winlator v11.2.0
         env:
@@ -44,15 +45,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/apktool
-          gh release download --repo iBotPeaches/Apktool --pattern 'apktool_*.jar' --dir build/apktool
-          find build/apktool -type f -name 'apktool_*.jar' -print -quit > build/apktool-path
-          test -s build/apktool-path
+          gh release download v3.0.2 --repo iBotPeaches/Apktool --pattern 'apktool_3.0.2.jar' --dir build/apktool
+          test -s build/apktool/apktool_3.0.2.jar
 
       - name: Descompactar e personalizar o app
         run: |
           set -euo pipefail
-          APKTOOL_JAR="$(cat build/apktool-path)"
-          java -jar "$APKTOOL_JAR" d -s -f build/upstream.apk -o build/unpacked
+          APKTOOL_JAR="build/apktool/apktool_3.0.2.jar"
+          java -jar "$APKTOOL_JAR" d --no-src -f build/upstream.apk -o build/unpacked
           python3 tools/rebrand.py build/unpacked
           java -jar "$APKTOOL_JAR" b --use-aapt2 build/unpacked -o build/duox-unsigned.apk
 
@@ -82,15 +82,19 @@ jobs:
           fi
           "$BT/apksigner" sign --ks build/duox.jks --ks-key-alias "$KEY_ALIAS" \
             --ks-pass "pass:$STORE_PASS" --key-pass "pass:$KEY_PASS" \
-            --out build/DuoX-v1.0.0.apk build/duox-aligned.apk
-          "$BT/apksigner" verify --verbose build/DuoX-v1.0.0.apk
-          python3 tools/verify_apk.py build/DuoX-v1.0.0.apk
+            --out build/DuoX-v1.0.1.apk build/duox-aligned.apk
+          "$BT/apksigner" verify --verbose build/DuoX-v1.0.1.apk
+          python3 tools/verify_apk.py build/DuoX-v1.0.1.apk
+          "$BT/zipalign" -c -p 4 build/DuoX-v1.0.1.apk
+          "$BT/aapt" dump badging build/DuoX-v1.0.1.apk | tee build/badging.txt
+          grep -F "package: name='com.duoxappx'" build/badging.txt
+          grep -F "launchable-activity: name='com.winlator.MainActivity'" build/badging.txt
 
       - name: Publicar artifact
         uses: actions/upload-artifact@v4
         with:
           name: DuoX-android-arm64
-          path: build/DuoX-v1.0.0.apk
+          path: build/DuoX-v1.0.1.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -99,10 +103,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            gh release upload v1.0.0 build/DuoX-v1.0.0.apk --clobber
+          if gh release view v1.0.1 >/dev/null 2>&1; then
+            gh release upload v1.0.1 build/DuoX-v1.0.1.apk --clobber
           else
-            gh release create v1.0.0 build/DuoX-v1.0.0.apk \
-              --title "DuoX v1.0.0 — experimental" \
+            gh release create v1.0.1 build/DuoX-v1.0.1.apk \
+              --title "DuoX v1.0.1 — experimental" \
               --notes "DuoX independente ARM64 com Wine/Box64 e renderizacao Windows. Derivado do Winlator v11.2 (LGPL-2.1). Consulte o README para limitacoes e atribuicoes. APK de teste: atualizacoes exigem assinatura persistente."
           fi
