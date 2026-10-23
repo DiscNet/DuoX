@@ -27,7 +27,7 @@ s = s.replace('android:authorities="com.winlator.FileProvider"',
               'android:authorities="com.duoxappx.FileProvider"')
 # Package-independent component identities: preserve original Java namespace.
 # Relative manifest entries would otherwise resolve to nonexistent com.duoxappx classes.
-component_pattern = re.compile(r'<(?:activity|activity-alias|service|receiver|provider|application|instrumentation)\\b[^>]*?>', re.S)
+component_pattern = re.compile(r'<(?:activity|activity-alias|service|receiver|provider|application|instrumentation)\b[^>]*?>', re.S)
 name_pattern = re.compile(r'(android:(?:name|targetActivity|parentActivityName)=")([^"]+)(")')
 def absolute_component(match):
     def patch_name(attr):
@@ -78,8 +78,8 @@ print(f"Identidade: com.duoxappx; {labels} labels; {fixed} binarios atualizados.
 metadata = root / "apktool.yml"
 if metadata.is_file():
     yml = metadata.read_text(encoding="utf-8")
-    yml, vcode = re.subn(r"(?m)^(\\s*versionCode:)\\s*.*$", r"\\g<1> '101'", yml)
-    yml, vname = re.subn(r"(?m)^(\\s*versionName:)\\s*.*$", r"\\g<1> '1.0.1'", yml)
+    yml, vcode = re.subn(r"(?m)^(\s*versionCode:)\s*.*$", r"\g<1> '101'", yml)
+    yml, vname = re.subn(r"(?m)^(\s*versionName:)\s*.*$", r"\g<1> '1.0.1'", yml)
     if vcode == 0 or vname == 0:
         raise SystemExit("Falha em atualizar a versao do APK.")
     metadata.write_text(yml, encoding="utf-8")
