@@ -47,7 +47,7 @@ class BrandingTest(unittest.TestCase):
             self.assertIn('android:authorities="com.duoxappx.FileProvider"', manifest)
             self.assertIn("DuoX", (root / "res" / "values" / "strings.xml").read_text())
             yml = (root / "apktool.yml").read_text()
-            self.assertIn("versionCode: '101'", yml)
+            self.assertIn("versionCode: 101", yml)
             self.assertIn("versionName: '1.0.1'", yml)
 
             patched = (root / "classes.dex").read_bytes()
