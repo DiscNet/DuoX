@@ -1,26 +1,36 @@
-# DuoX
+# DuoX — Windows .exe no Android
 
-Arena 2D de combate entre duas gosminhas, feita para **2 pessoas no mesmo celular Android**, em tela horizontal. Inspirada no ritmo de jogos como Bopl Battle; código, personagens e gráficos são próprios.
+**Status: v1 experimental (ARM64).** DuoX é um pacote Android independente de execução local de programas Windows baseado no runtime do projeto [Winlator](https://github.com/brunodev85/winlator), que reúne Wine, Box64, um servidor X e componentes gráficos. **Não é necessário instalar Termux, Wine, Winlator ou ter root.** É uma derivação atribuída, não um emulador escrito do zero.
 
-## Como jogar
-- **Player 1 (azul):** controles na metade esquerda da tela.
-- **Player 2 (rosa):** controles na metade direita da tela.
-- Ambos podem jogar simultaneamente usando multitoque.
-- **◀ ▶** mover; **↑** pular e pular novamente no ar; **●** atirar (segure para tiros sucessivos); **»** dash (também causa dano no contato); **◇** escudo temporário.
-- Elimine o rival com tiros, colisão durante o dash ou derrubando-o da arena. O primeiro a atingir **5 pontos** vence.
-- As habilidades têm recargas, mostradas por arcos nos botões. Para recomeçar, toque no centro ao final da partida.
+## Como usar
 
-## Gerar o APK
-1. Abra a aba [Actions](https://github.com/DiscNet/DuoX/actions) do repositório.
-2. Selecione **Android APK**, e use **Run workflow** (ou aguarde o build iniciado por um push em `main`).
-3. Após um build bem-sucedido, abra a execução e baixe o artefato **DuoX-debug-apk**.
-4. Extraia o ZIP e instale `app-debug.apk` no Android.
+1. Instale o APK gerado na aba [Releases](https://github.com/DiscNet/DuoX/releases) deste repositório.
+2. Abra o DuoX e permita que conclua a instalação do ambiente Windows na primeira execução.
+3. Entre em **Containers**, crie um ambiente com o botão **+** e execute-o.
+4. Copie ou selecione o `.exe` no armazenamento do Android; ele geralmente fica acessível no disco **D:** do Explorador do ambiente Windows. Toque duas vezes no `.exe` para tentar abrir.
 
-Build local: `gradle --no-daemon :app:assembleDebug`, com JDK 17 e Android SDK instalados.
+O processamento acontece no próprio aparelho. O APK integra o runtime, sem precisar de serviços externos na execução. No primeiro uso, a extração interna pode ocupar aproximadamente 2 GB ou mais.
 
-## Stack
-- Kotlin + Android Canvas 2D, atualização de 60 FPS (alvo), multitoque por identificador de dedo.
-- Sem conexão à internet, serviços externos nem dependências de jogos.
-- Android 6.0+ (API 23), modo paisagem.
+## Limites da V1
 
-**Status:** protótipo jogável. Ainda não reproduz todas as habilidades, arenas, animações, balanceamento e opções de Bopl Battle. O APK depende da compilação bem-sucedida no GitHub Actions ou ambiente Android local.
+- Android ARM64, Android 8.0+; desempenho e compatibilidade dependem de processador, memória, GPU, drivers, programa e jogo.
+- Não há garantia de execução de todos os `.exe`; programas que exigem .NET, bibliotecas adicionais, anticheat ou drivers Windows podem falhar.
+- Esta versão é uma **distribuição experimental com identidade DuoX** sobre uma base de compatibilidade Winlator; ainda não possui um motor de emulação desenvolvido especificamente para o DuoX.
+- O APK é montado pelo GitHub Actions a partir de uma versão identificada do Winlator, sem importar binários terceiros para o histórico Git.
+- Não execute arquivos `.exe` de procedência desconhecida. O Wine não é uma barreira de segurança.
+
+## Compilação
+
+O workflow [Android DuoX](.github/workflows/android.yml) obtém o APK público da versão `v11.2.0` do Winlator, adapta nome, ícone e identidade do pacote, verifica o runtime, assina, e publica `DuoX-v1.0.0.apk` em Releases e Artifacts.
+
+> Para atualizar uma instalação anterior sem desinstalar, forneça uma chave de assinatura permanente nos segredos `DUOX_KEYSTORE_BASE64`, `DUOX_KEYSTORE_PASSWORD`, `DUOX_KEY_ALIAS` e `DUOX_KEY_PASSWORD`. Sem eles, a automação usa uma chave temporária de teste, que não permite atualização direta entre execuções.
+
+## Licenças e atribuições
+
+- Motor e código-base: [Winlator / brunodev85](https://github.com/brunodev85/winlator-app), disponibilizado sob LGPL-2.1. Esta distribuição não é afiliada ao autor original.
+- Wine: [winehq.org](https://www.winehq.org/).
+- Box64: [ptitSeb/box64](https://github.com/ptitSeb/box64).
+- Outros componentes e respectivas licenças: Mesa, PRoot, DXVK, VKD3D e ferramentas incorporadas pelo projeto original.
+- Patch de distribuição, script de marca, documentação e workflow: este repositório. As bibliotecas mantêm seus próprios avisos e licenças.
+
+Fontes da base estão disponíveis em https://github.com/brunodev85/winlator-app .

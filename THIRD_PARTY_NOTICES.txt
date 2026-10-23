@@ -1,0 +1,19 @@
+DuoX v1 — integracao e distribuicao experimental do Winlator
+
+Componentes de terceiros: Winlator (LGPL-2.1), Wine, Box64, PRoot,
+Mesa, DXVK, VKD3D e dependencias transitivas.
+
+Fonte original do aplicativo:
+https://github.com/brunodev85/winlator-app
+
+Licenca e arquivos correspondentes:
+https://github.com/brunodev85/winlator-app/blob/main/LICENSE
+
+Modificacoes especificas do DuoX:
+- Package ID de instalacao e caminhos absolutos, sem alterar as classes JNI.
+- Nome e icones do aplicativo.
+- Novo pipeline de empacotamento e assinatura.
+- Documentacao e aviso de uso experimental.
+
+Este projeto nao declara autoria do motor Winlator/Wine/Box64. O codigo
+original e suas licencas permanecem atribuidos aos respectivos autores.

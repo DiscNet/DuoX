@@ -1,54 +1,108 @@
-name: Build and publish DuoX APK
+name: Android DuoX — APK standalone
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'app/**'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'gradle.properties'
-      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: duox-release
+  cancel-in-progress: true
+
 jobs:
-  android-release:
+  package-android:
+    name: Gerar DuoX ARM64
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
       - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
-      - name: Build APK
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
-      - name: Prepare release APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk DuoX-v0.1.0.apk
-      - name: Save artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DuoX-v0.1.0
-          path: DuoX-v0.1.0.apk
-          if-no-files-found: error
-      - name: Publish GitHub Release
+
+      - name: Python e Pillow
+        run: python3 -m pip install --break-system-packages Pillow
+
+      - name: Baixar o runtime Windows/Android do Winlator v11.2.0
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if gh release view v0.1.0 >/dev/null 2>&1; then
-            gh release upload v0.1.0 DuoX-v0.1.0.apk --clobber
+          mkdir -p build/upstream
+          gh release download v11.2.0 --repo brunodev85/winlator --pattern '*.apk' --dir build/upstream
+          python3 tools/select_apk.py build/upstream build/upstream.apk
+
+      - name: Obter Apktool
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/apktool
+          gh release download --repo iBotPeaches/Apktool --pattern 'apktool_*.jar' --dir build/apktool
+          find build/apktool -type f -name 'apktool_*.jar' -print -quit > build/apktool-path
+          test -s build/apktool-path
+
+      - name: Descompactar e personalizar o app
+        run: |
+          set -euo pipefail
+          APKTOOL_JAR="$(cat build/apktool-path)"
+          java -jar "$APKTOOL_JAR" d -s -f build/upstream.apk -o build/unpacked
+          python3 tools/rebrand.py build/unpacked
+          java -jar "$APKTOOL_JAR" b --use-aapt2 build/unpacked -o build/duox-unsigned.apk
+
+      - name: Alinhar, assinar e validar APK
+        env:
+          DUOX_KEYSTORE_BASE64: ${{ secrets.DUOX_KEYSTORE_BASE64 }}
+          DUOX_KEYSTORE_PASSWORD: ${{ secrets.DUOX_KEYSTORE_PASSWORD }}
+          DUOX_KEY_ALIAS: ${{ secrets.DUOX_KEY_ALIAS }}
+          DUOX_KEY_PASSWORD: ${{ secrets.DUOX_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          "$BT/zipalign" -f -p 4 build/duox-unsigned.apk build/duox-aligned.apk
+          if [[ -n "$DUOX_KEYSTORE_BASE64" && -n "$DUOX_KEYSTORE_PASSWORD" && -n "$DUOX_KEY_ALIAS" && -n "$DUOX_KEY_PASSWORD" ]]; then
+            printf '%s' "$DUOX_KEYSTORE_BASE64" | base64 -d > build/duox.jks
+            KEY_ALIAS="$DUOX_KEY_ALIAS"
+            STORE_PASS="$DUOX_KEYSTORE_PASSWORD"
+            KEY_PASS="$DUOX_KEY_PASSWORD"
           else
-            gh release create v0.1.0 DuoX-v0.1.0.apk \
-              --title "DuoX v0.1.0" \
-              --notes "Primeira versão Android: combate local de duas gosminhas na mesma tela, em modo paisagem. APK de teste (debug)."
+            echo "::warning::Assinando com chave de teste temporaria. Para instalacoes atualizaveis, configure os segredos de assinatura."
+            keytool -genkeypair -noprompt -alias duox-dev -keyalg RSA -keysize 2048 \
+              -validity 3650 -keystore build/duox.jks -storetype PKCS12 \
+              -storepass android -keypass android -dname "CN=DuoX Experimental"
+            KEY_ALIAS="duox-dev"
+            STORE_PASS="android"
+            KEY_PASS="android"
+          fi
+          "$BT/apksigner" sign --ks build/duox.jks --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass "pass:$STORE_PASS" --key-pass "pass:$KEY_PASS" \
+            --out build/DuoX-v1.0.0.apk build/duox-aligned.apk
+          "$BT/apksigner" verify --verbose build/DuoX-v1.0.0.apk
+          python3 tools/verify_apk.py build/DuoX-v1.0.0.apk
+
+      - name: Publicar artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DuoX-android-arm64
+          path: build/DuoX-v1.0.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            gh release upload v1.0.0 build/DuoX-v1.0.0.apk --clobber
+          else
+            gh release create v1.0.0 build/DuoX-v1.0.0.apk \
+              --title "DuoX v1.0.0 — experimental" \
+              --notes "DuoX independente ARM64 com Wine/Box64 e renderizacao Windows. Derivado do Winlator v11.2 (LGPL-2.1). Consulte o README para limitacoes e atribuicoes. APK de teste: atualizacoes exigem assinatura persistente."
           fi
